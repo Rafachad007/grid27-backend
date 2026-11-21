@@ -1,18 +1,33 @@
 from django.contrib import admin
-from .models import Categoria, Producto, ImagenProducto
+from .models import Categoria, Producto, VarianteProducto, ImagenProducto, Orden, DetalleOrden
 
-# Esto es para poder subir varias fotos al mismo tiempo dentro del mismo producto
+class VarianteProductoInline(admin.TabularInline):
+    model = VarianteProducto
+    extra = 3
+
 class ImagenProductoInline(admin.TabularInline):
     model = ImagenProducto
     extra = 1
 
-# Configuramos cómo se verá la tabla de productos
+@admin.register(Producto)
 class ProductoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'precio', 'stock', 'categoria')
-    list_filter = ('categoria', 'talla')
-    search_fields = ('nombre', 'descripcion')
-    inlines = [ImagenProductoInline]
+    list_display = ['nombre', 'precio', 'categoria', 'stock_total']
+    list_filter = ['categoria']
+    search_fields = ['nombre', 'descripcion']
+    inlines = [VarianteProductoInline, ImagenProductoInline]
 
-# Registramos todo
-admin.site.register(Categoria)
-admin.site.register(Producto, ProductoAdmin)
+@admin.register(Categoria)
+class CategoriaAdmin(admin.ModelAdmin):
+    list_display = ['id', 'nombre']
+
+class DetalleOrdenInline(admin.TabularInline):
+    model = DetalleOrden
+    extra = 0
+    readonly_fields = ['producto', 'talla', 'cantidad', 'precio_unitario']
+
+@admin.register(Orden)
+class OrdenAdmin(admin.ModelAdmin):
+    list_display = ['id', 'usuario', 'fecha', 'total', 'estado']
+    list_filter = ['estado', 'fecha']
+    search_fields = ['usuario__username', 'direccion_envio']
+    inlines = [DetalleOrdenInline]
