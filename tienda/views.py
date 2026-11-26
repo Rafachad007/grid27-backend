@@ -3,8 +3,10 @@ from rest_framework import viewsets, generics, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.models import User
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 
 from .models import Categoria, Producto, Orden
 from .serializers import (
@@ -14,6 +16,13 @@ from .serializers import (
     OrdenSerializer,
 )
 
+
+class PaginacionDinamica(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 50
+
+
 class ProductoFilter(django_filters.FilterSet):
     talla = django_filters.CharFilter(field_name='variantes__talla', lookup_expr='iexact')
 
@@ -21,18 +30,24 @@ class ProductoFilter(django_filters.FilterSet):
         model = Producto
         fields = ['categoria', 'talla']
 
+
 class RegistroUsuarioView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegistroUsuarioSerializer
     permission_classes = [permissions.AllowAny]
 
+
 class CategoriaViewSet(viewsets.ModelViewSet):
     queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
 
 class ProductoViewSet(viewsets.ModelViewSet):
     queryset = Producto.objects.all().distinct().order_by('-id')
     serializer_class = ProductoSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    pagination_class = PaginacionDinamica
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = ProductoFilter
@@ -64,6 +79,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
         productos = request.user.productos_favoritos.all()
         serializer = self.get_serializer(productos, many=True)
         return Response(serializer.data)
+
 
 class OrdenViewSet(viewsets.ModelViewSet):
     serializer_class = OrdenSerializer
